@@ -35,5 +35,28 @@ int main(){
 	
 	}
 
+	//Bind to 0.0.0.0:8080 (all interfaces)
+	
+	sockaddr_in addr{};
+	addr.sin_family = AF_INET;
+	addr.sin_addr.s_addr = htonl(INADDR_ANY); //0.0.0.0
+	addr.sin_port = htons(port);
+
+	if(bind(listen_fd, reinterpret_cast<sockaddr*>(&addr), sizeof(addr)) < 0) {
+		perror("bind");
+		return 1;
+	}
+
+	
+
+	if(listen(listen_fd, 16) < 0) {
+		perror("listen");
+		return 1;
+	}
+
+	std::cout << "Echo server listening on port : "<< port << " ..." << std::endl;
+
+
+
 	return 0;
 }

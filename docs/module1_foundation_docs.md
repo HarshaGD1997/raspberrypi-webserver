@@ -49,5 +49,137 @@
 ------------------------------------------------------------------------
 
  
+## setsockopt()
+
+    int yes = 1;
+    if(setsockopt(listen_fd, SOL_SOCKET, SO_REUSEADDR, &yes, sizeof(yes)) < 0) {
+        perror("setsockopt SO_REUSEADDR);
+        return 1;
+    }
+
+
+    * int yes = 1;
+    * create an integer named yes and set the value to 1(true).
+    * this will be sent to socket opetion to enable the feature.
+
+    * setsockopt()
+    * setsockopt() is a systemcall that sets options on a socket.
+        * listen_fd = file descriptor on which we are setting the option.
+        * SOL_SOCKET = Specify the option is at socket level.
+        * SO_REUSEADDR = the specific option being set.
+            *Allows the socket to reuse a local address/port even if it's in the TIME_WAIT state from a previous connection.
+            *Without this you might get "Address already in use" if you restart the server quickly.
+        * &yes = pointer to the option value (1 to enable).
+        * sizeof(yes) = size of the value being passed.
+
+    
+    * Error check 
+    * if setsockopt returns < 0 it means, setting the option failed.
+    * perror("setsockopt SO_REUSEADDR") prints error to the stderr. (Describing why it failed e.g., Insufficient permissions).
+    * Exits the program with non-zero status if the option couldn't be set.
+
+    
+    * Why SO_REUSEADDR?
+    * if TCP connection closes, the port enters a TIME_WAIT state for a few minutes to ensure all packets have cleared.
+    * without this option trying to bind() to the same port immediatly will fail.
+    * Enabling the SO_REUSEADDR let's you restart a server on the same port without waiting.
+
+    
+    * This code enables address reuse on the server socket so the server can be restarted quickly and avoid "Address already in use" errors.
+
+----------------------------------------------------------------------------------
+
+## Setup socket address structure (sockaddr_in). Server can bind to specific IP address and port,
+
+    * sockaddr_in addr{};
+    * Declares and zero-initializes a sockaddr_in structure named addr.
+    * sockaddr_in is a special struct used to describe an IPv4 address/port combination for network operations like bind().
+    * {} ensures all fields are set to 0 initially, preventing garbage values.
+
+    * addr.sin_family = AF_INET;
+    * specifies address family 
+    * AF_INET = IPv4
+    * tells socket function that this is IPv4 socket.
+
+    * addr.sin_addr.s_addr = htonl(INADDR_ANY);
+    * Sets IP address on which the server will listen.
+    * INADDR_ANY is a constant (0.0.0.0), listen on all available network interfaces (wifi, localhost, ethernet).
+    * htonl() converts the 32-bit integer from host byte order to network byte order (big-endian), which is required by network functions.
+    * if you wanted to bind specific IP address (e.g., 127.0.0.1), then you'd use inet_pton() to convert a text IP address into binary instead of INADDR_ANY.
+
+
+    * addr.sin_port = htons(port);
+    * set the TCP/UDP port number for socket.
+    * port is uint16_t variable (e.g., 8080).
+    * htons will convert the 16-bit port number from host-byte order to network byte order.
+
+    * This configuration means: 
+        * Protocol family: IPv4
+        * IP address: 0.0.0.0 accept connections from any interface.
+        * Port: 8080 (or any value the port variable holds).
+    * When passed to bind(listen_fd, (sockaddr*)&addr, sizeof(addr)), the server will accept connections on all network interfaces at port 8080.
+
+--------------------------------------------------------------------------------------------------
+
+
+##   bind() system call
+
+    * bind() is a system call that associates a socket (created earlier with socket()) to a specific address and port.
+    * listen_fd = file descritor of the socket you created.
+    
+    * reinterpret_cast<sockaddr*>(&addr) = a pointer to the address structure (here, an sockaddr_in) cast to the generic type sockaddr* required by the bind() API.
+
+    * sizeof(addr) = size of the address structure.
+
+    * if bind succeds, then the socket is attached to the given IP address and port (e.g., 0.0.0.0:8080).
+    * if it fails (returns < 0), perror("bind") prints the reason.
+
+    * About the cast 
+    * bind() expects it's second parameter as const struct sockaddr *.
+    * addr is declared as struct sockaddr_in (IPv4 specific).
+    * reinterpret_cast<sockaddr*>(&addr) simply reinterprets the memory of addr as a generic sockaddr.
+    * this is a c++ type cast, safer and more explicit than a c-style (sockaddr*)&addr.
+
+    * bind() function prototype:
+        * int bind(int sockfd, const struct sockaddr *addr, socklen_t addrlen);
+        * compiler will complain if you pass a sockadd_in* directly where a sockaddr* is expected.
+
+    *reinterpret_cast<> is a c++ type-cast operator that allows you to interpret one pointer type as another without changing underlying bits.
+    * nothing about the actual memory changes; it's just a different view of the same bytes.
+
+----------------------------------------------------------------------------------------------------
+
+## listen() 
+
+    * listen(listen_fd, 16) this tells the OS that your socket(listen_fd) should start listening for incoming tcp connection requests.
+    * Arguments:
+        * listen_fd socket file descriptor that was previously created with socket() and bound to an address with bind().
+        * 16 (backlog): backlog is the maximum number of pending connections that can be queued while your program hasn't yet called accept().
+        * 16 is the size of the waiting room for clients trying to connect.
+        * if more than 16 clients attempt to connect simultaneously, new connection attempts may be refused(depending on the OS).
+        * returns 0 on sucess and -1 on the error;
+
+    
+    * listen() moves the socket from a passive state(just bound to an address) to a listening state, allowing the kernel to queue incomming connections.
+    * backlog (16) here determines how many connection request can wait in line before being accepted.
+    * if queue is full, additional connection attemps might fail or be ignored untill space is available.
+
+    * this is the final step before calling accept() to establish actual client connections.
+
+--------------------------------------------------------------------------------------------------------
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
  
