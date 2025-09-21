@@ -1,0 +1,19 @@
+# Build outputs 
+
+build/
+*.o
+*.out
+*.log
+
+# Binaries 
+
+src/*/*.o
+src/*/echo_server
+src/*/http_server
+
+# OS clutter
+
+.DS_Store
+Thumbs.db
+
+
