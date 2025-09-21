@@ -169,10 +169,112 @@
 --------------------------------------------------------------------------------------------------------
 
 
+## Server main loop
+
+    * while(true) 
+        * server runs forever, waiting for new clients.
+        * each iteration of the loop: waits for a new connection, accepts it, prints the client information.
+
+    * Create a structure to store client info 
+    * sockaddr_in client{};
+    * socklen_t len = sizeof(client);
+    * sockaddr_in client{} : A structure that holds the client IP address and port once a connection is accepted.
+    * socklen_t len : A variable to tell accept() how large the client structure is.
+    * socklen_t is an integer type specifically used to represent socket address lengths.
 
 
+    * accepting a new client connection:
+        * int client_fd = accept(listen_fd, reinterpret_cast<sockaddr*>(&client), &len);
+
+        * accept() blocks until a client tries to connect to the server's listening socket(listen_fd).     
+        * arguments:
+            * listen_fd: listen socket created earlier with socket() and listen().
+            * reinterpret_cast: safely converts pointer type.
+            * &len: on returns, it contains the actual size of the client addresss.
+
+    * return values:
+        * client_fd : A socket descriptor dedicated tp communicating with this client.
+        * listen_fd : continues listening for other clients.
+
+    
+    * handling error: 
+        * if(client_fd < 0){
+            if(errno == EINTR) continue;
+            perror("Accept");
+            break;
+        }
+        
+        * if the error is EINTR (interrupted by a signal), retry the loop.
+        * otherwise print the error (perror) and break out of the loop.
 
 
+        * wait for a client tp connect(accpet).
+        * retrieve the client's IP/port info.
+        * print conection details.
+        * loop back to handle more clients.
+
+
+-------------------------------------------------------------------------------------------------------
+
+## Converting client IP to human-readable string
+
+    * char ipstr[INET_ADDRSTRLEN];
+      inet_ntop(AF_INET, &client.sin_addr, ipstr, sizeof(ipstr));
+
+    * INET_ADDRSTRLEN = size of buffer needed to store an IPv4 address (e.g., 192.168.1.1).
+    * inet_ntop() = converts binary IP address (client.sin_addr) into a readable string and stores it in ipstr.
+
+    * ntohs(client.sin_port) = converts clients port from network byte order to host byte order for readability.
+
+ 
+-------------------------------------------------------------------------------------------------------------
+
+
+## Core echo loop
+
+
+    * It repeatedly reads data from a connected client socket, then writes the same back, until the client disconnects or an error occurs.
+
+    * Create a buffer
+        char buf[4096];
+    A 4kb buffer to temporarily store the bytes received from the client.
+
+
+    * Main loop
+        while(true) 
+            ssize_t n = read(client_fd, buf, sizeof(buf));
+    
+        * read() tries to receive upto sizeof(buf) bytes from the client socket (client_fd).
+        * n is the number of bytes actually read, or an error code.
+
+        if(n == 0) client closed connection. Sends a FIN packet.
+
+        if(n < 0) error occured.
+
+    ssize_t to_write = n, written = 0;
+    while(written < to_write) {
+
+        ssize_t w = write(client_fd, buf + written, to_write - written);
+        ..
+        written += w;
+    }    
+
+    * Echo back exactly what was read.
+    * loop inside a loop : write() might not send all to_write bytes in one call (called a partial write).
+    * inner loop ensures that all bytes read are sent back before reading again.
+
+        
+-------------------------------------------------------------------------------------------------------------
+
+## Cleanup 
+
+
+    done_with_client: 
+        close(client_fd);
+
+    close(listen_fd);
+
+--------------------------------------------------------------------------------------------------------------
 
 
 
