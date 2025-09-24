@@ -2,6 +2,8 @@
 
 ## Http server which responds back with Hello world
 
+![assets/http_flow.png]
+
 
 	- A server listening on port 8080.
 	- Accepts connections, reads an HTTP request, and sends back a valid HTTP response.
