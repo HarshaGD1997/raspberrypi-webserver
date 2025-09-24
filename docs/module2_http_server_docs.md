@@ -2,7 +2,7 @@
 
 ## Http server which responds back with Hello world
 
-![http flow](assets/http_flow.png)
+![http flow](../assets/http_flow.png)
 
 
 	- A server listening on port 8080.
